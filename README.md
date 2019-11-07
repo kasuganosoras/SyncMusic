@@ -21,6 +21,12 @@
 
 如果安装时遇到问题，可以通过 Issues 提问。
 
+## 在线预览
+
+ZeroDream：[Akkariin 点歌台](https://music.tql.ink/)
+
+> 如果你想将你的点歌台列在这里，请开一个 Issues 并写上你的点歌台地址。
+
 ## 开源协议
 
 本项目使用 GPL v3 协议开源
