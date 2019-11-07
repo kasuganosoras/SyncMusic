@@ -79,6 +79,7 @@
 						<br>
 						<h5>歌词</h5>
 						<p id="musiclrc">Loading...</p>
+						<p><small id="usedtime">00:00:00</small><small id="endtime" class="right-align" style="display: block;margin-top: -18px;">00:00:00</small></p>
 						<div class="progress">
 							<div class="determinate" id="played" style="width: 0%"></div>
 						</div>
@@ -103,9 +104,10 @@
 							<button onclick="sendmsg()" id="sendmsgbtn" class="btn btn-primary full-width">发送</button>
 						</span>
 					</div>
-					<p>提示：输入 “点歌 &lt;歌名&gt;” 即可点歌。<br>例如输入：点歌 See You Again<br>支持输入网易云音乐 ID 来点歌</p>
+					<p>提示：输入 “点歌 歌名” 即可点歌。<br>例如输入：点歌 See You Again<br>支持输入网易云音乐 ID 来点歌</p>
 					<p>遇到不好听的歌可以输入 “投票切歌”，当投票人数超过在线人数的一半时就会切歌。</p>
 					<p>点播过于难听的歌曲例如 LostRiver 等将会被管理员切歌或从播放列表删除。</p>
+					<p>输入 “设置昵称 名字” 即可设置自己的显示昵称，仅限当前客户端的 IP 地址有效。</p>
 				</div>
 			</div>
 		</div>
@@ -114,7 +116,7 @@
 	<script type="text/javascript" src="https://cdn.zerodream.net/js/materialize.min.js"></script>
 	<script type="text/javascript">
 		// 配置
-		var ws_hostname = 'wss://example.com:810/';
+		var ws_hostname = 'wss://gateway.tql.ink:810/';
 		
 		// 初始化变量
 		var websocket;
@@ -175,6 +177,29 @@
 				}
 				musicControl.play();
 			}, 1000);
+		}
+		
+		// 转换时间格式
+		function formatSeconds(value) {
+			if(value == null || value == undefined) value = 0;
+			var secondTime = parseInt(value);
+			var minuteTime = 0;
+			var hourTime = 0;
+			if(secondTime > 60) {
+				minuteTime = parseInt(secondTime / 60);
+				secondTime = parseInt(secondTime % 60);
+				if(minuteTime > 60) {
+					hourTime = parseInt(minuteTime / 60);
+					minuteTime = parseInt(minuteTime % 60);
+				}
+			}
+			secondTime = parseInt(secondTime);
+			minuteTime = parseInt(minuteTime);
+			hourTime   = parseInt(hourTime);
+			if(secondTime < 10) secondTime = "0" + parseInt(secondTime);
+			if(minuteTime < 10) minuteTime = "0" + parseInt(minuteTime);
+			if(hourTime < 10) hourTime = "0" + parseInt(hourTime);
+			return hourTime + ":" + minuteTime + ":" + secondTime;
 		}
 		
 		// 发送聊天消息
@@ -268,6 +293,8 @@
 				}, 1000);
 				setInterval(function() {
 					played.style.width = ((musicControl.currentTime / musicControl.duration) * 100) + "%";
+					usedtime.innerText = formatSeconds(musicControl.currentTime);
+					endtime.innerText = formatSeconds(musicControl.duration - musicControl.currentTime);
 				}, 100);
 				setInterval(function() {
 					if(ws_connected) {
