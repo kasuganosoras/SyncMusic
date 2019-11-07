@@ -42,6 +42,18 @@ define("DEBUG", false);
 // 是否使用 X-Real-IP 来获取客户端 IP，适用于 Nginx 反代后的 WebSocket
 define("USE_X_REAL_IP", true);
 
+// 是否使用 Redis 来储存歌单数据
+define("USE_REDIS", true);
+
+// Redis 地址
+define("REDIS_HOST", "127.0.0.1");
+
+// Redis 端口
+define("REDIS_PORT", "6379");
+
+// Redis 密码（留空禁用）
+define("REDIS_PASS", "");
+
 // 音乐信息获取 API，默认是 ZeroDream 的 API
 // 可自行搭建，参考：https://github.com/mengkunsoft/MKOnlineMusicPlayer
 define("MUSIC_API", "https://cdn.zerodream.net/netease");
@@ -51,6 +63,9 @@ define("PYTHON_EXEC", "/usr/bin/python3");
 
 // 客户端聊天冷却时间，单位秒
 define("MIN_CHATWAIT", 3);
+
+// 聊天内容的最大长度
+define("MAX_CHATLENGTH", 200);
 
 /**
  *
