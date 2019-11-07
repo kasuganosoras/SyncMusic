@@ -248,7 +248,7 @@ class SyncMusic {
 										}
 										
 										// 判断投票的用户数是否超过在线用户数的一半
-										if($needSwitch / $totalUsers > 0.5) {
+										if($needSwitch / $totalUsers >= 0.5) {
 											
 											// 执行切歌操作
 											$this->setMusicTime(time() + 1);
@@ -265,6 +265,29 @@ class SyncMusic {
 											$server->push($frame->fd, json_encode([
 												"type" => "msg",
 												"data" => "投票成功"
+											]));
+											
+											// 广播给所有客户端
+											foreach($server->connections as $id) {
+												$server->push($id, json_encode([
+													"type" => "msg",
+													"data" => "当前投票人数：{$needSwitch}/{$totalUsers}"
+												]));
+											}
+										}
+										
+										// 广播给所有客户端
+										$userNickName = $this->getUserNickname($clientIp);
+										foreach($clients as $id) {
+											$showUserName = $this->getClientIp($id) == $adminIp ? $clientIp : $username;
+											if($userNickName) {
+												$showUserName = "{$userNickName} ({$showUserName})";
+											}
+											$server->push($id, json_encode([
+												"type" => "chat",
+												"user" => htmlspecialchars($showUserName),
+												"time" => date("Y-m-d H:i:s"),
+												"data" => htmlspecialchars($json['data'])
 											]));
 										}
 									}
@@ -1327,7 +1350,7 @@ EOF;
 	 */
 	private function getTotalUsers()
 	{
-		return $this->server->getClientList() ? count($this->server->getClientList()) : 0;
+		return $this->server->connections ? count($this->server->connections) : 0;
 	}
 	
 	/**
