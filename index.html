@@ -1,0 +1,284 @@
+<!--
+    __________    ____                   __  __           _      
+   |  _____   |  / ___| _   _ _ __   ___|  \/  |_   _ ___(_) ___ 
+   |  |    |  |  \___ \| | | | '_ \ / __| |\/| | | | / __| |/ __|
+   |  |    |  |   ___) | |_| | | | | (__| |  | | |_| \__ \ | (__ 
+  /   |   /   |  |____/ \__, |_| |_|\___|_|  |_|\__,_|___/_|\___|
+ |___/   |___/          |___/                                    
+
+ 此项目使用 GPL v3 协议开放源代码，您可以在遵守本协议的前提下自由修改使用
+
+ 作者：Akkariin Meiko | QQ：204034 | Telegram：Akkariins
+
+-->
+<html>
+	<head>
+		<meta name="theme-color" content="#009688" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=11">
+		<title>SyncMusic - 在线点歌</title>
+		<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+		<link rel="stylesheet" href="https://cdn.zerodream.net/css/materialize.min.css">
+		<link rel="stylesheet" href="https://cdn.zerodream.net/font-awesome/css/font-awesome.min.css">
+		<style type="text/css">body{font-size:15px;font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;font-weight:400;}hr{border:2px solid rgba(0,0,0,0.1);}.background-black{background:rgba(0,0,0,0.3);width:100%;height:100%;position:absolute;}.topbar-fixed{z-index:1;position:fixed;top:0px;left:0px;}.container{margin-top:80px;}.logo-text{font-size:22px ! important;font-weight:300;position: relative;top: -2px;}.description{font-size:18px;}.table tr td,.table tr th{padding-left:16px;padding-right:16px;font-weight:400;font-size:15px;}h1,h2,h3,h4,h5{font-weight:400;}.normal-text{font-size:15px;}.input{width:100%;}#chatdata{margin-top:16px;margin-bottom:16px;height:50vh;overflow-y:auto;}#chatdata .sysmsg{padding:4px 12px 4px 12px;border-radius:12px;margin:4px 0px 4px 0px;display:inline-block;background:rgba(0,0,0,0.5);color:#FFF;}#chatdata .chat{width:100%;margin-top:12px;}#chatdata .chat .headimg{display:inline-block;width:65px;text-align:center;vertical-align:top;}#chatdata .chat .headimg img{width:45px;transition-duration:0.25s;}#chatdata .chat .headimg img:hover{box-shadow:0px 0px 8px rgba(0,0,0,0.5);}#chatdata .chat .msgbox{display:inline-block;padding-left:6px;min-width:45px;max-width:calc(100% - 100px);}#chatdata .chat .msgbox small{display:block;}#chatdata .chat .msgbox .msg{margin-top:4px;padding:12px;background:rgba(0,0,0,0.6);border-radius:8px;word-break:break-all;display:inline-block;min-width:45px;}#chatdata .chat .hiddentime{opacity:0;transition-duration:0.25s;}#chatdata .chat .hiddentime:hover{opacity:1;}#chatdata .hidechat{display:none;}.full-width{width:100%;}#musicname,#musiclrc{word-break:break-all;}#blur-img{position:fixed;height:120vh;left:-10%;width:120vw;overflow:hidden;top:-10%;z-index:-1;}.blur-mask{display:none;position:absolute;width:100%;height:100%;background-color:#000;filter:alpha(opacity=30);-moz-opacity:0.3;opacity:0.3;top:0;left:0;overflow:hidden;}.blured-img,#blurimgsrc{width:100%;height:100%;}.table tr td,.table tr th{white-space:nowrap;}::-webkit-scrollbar{width:10px;height:10px;background:rgba(0,0,0,0);}::-webkit-scrollbar-thumb{background:#009688;border-radius:8px;margin-left:2px;margin-right:2px;}::-webkit-scrollbar-corner{background:rgba(0,0,0,0);}</style>
+	</head>
+	<body class="blue-grey darken-4 white-text">
+		<div id="blur-img" style="opacity: 1;">
+			<svg xmlns="http://www.w3.org/2000/svg" version="1.1" id="blurred_flv8ppoyf" class="blured-img" viewBox="0 0 2304 978" preserveAspectRatio="none">
+				<filter id="blur_flv8ppoyf">
+					<feGaussianBlur in="SourceGraphic" stdDeviation="50"></feGaussianBlur>
+				</filter>
+				<image x="0" y="0" externalResourcesRequired="true" xlink:href="" id="blurimgsrc" style="filter:url(#blur_flv8ppoyf)" preserveAspectRatio="none"></image>
+			</svg>
+			<div class="blur-mask" style="display: block;"></div>
+		</div>
+		<div id="welcome" style="position: fixed;width: 100%;height: 100%;top: 0px;left: 0px;z-index: 9999999;background: #263238;">
+			<span class="fa-stack fa-lg" style="font-size: 64px;position: fixed;top: calc(50% - 64px);left: calc(50% - 64px);cursor:pointer;" onclick="connect();$(welcome).fadeOut();">
+				<i class="fa fa-circle fa-stack-2x" style="color:#009688 !important;"></i>
+				<i class="fa fa-play fa-stack-1x fa-inverse" style="position: relative;left: 6px;"></i>
+			</span>
+		</div>
+		<nav class="topbar-fixed">
+			<div class="nav-wrapper teal">
+				<ul id="nav-mobile" class="left">
+					<li><a href="#" data-target="slide-out" class="sidenav-trigger waves-effect" style="display: inline-block;"><i class="material-icons">menu</i></a></li>
+					<li><a href="#" class="logo-text waves-effect"> SyncMusic 在线点歌台</a></li>
+				</ul>
+			</div>
+		</nav>
+		<ul id="slide-out" class="sidenav">
+			<li>
+				<div class="user-view">
+					<div class="background">
+						<div class="background-black"></div>
+						<img src="https://akariin.dev/images/background.jpg">
+					</div>
+					<a href="#"><img class="circle" src="https://akariin.dev/images/avatar.jpg"></a>
+					<a href="#"><span class="white-text name">Akkariin Meiko</span></a>
+					<a href="#"><span class="white-text email">个人开发者，鸽子王</span></a>
+				</div>
+			</li>
+			<li><a class="waves-effect" href="https://tql.ink/" target="_blank">个人博客</a></li>
+			<li><a class="waves-effect" href="https://t.me/Akkariins" target="_blank">Telegram</a></li>
+			<li><div class="divider"></div></li>
+			<li><a class="subheader">社交媒体</a></li>
+			<li><a class="waves-effect" href="https://twitter.com/KasuganoSoras">Twitter</a></li>
+			<li><a class="waves-effect" href="https://facebook.com/KasuganoSoras">Facebook</a></li>
+			<li><a class="waves-effect" href="https://github.com/KasuganoSoras">GitHub</a></li>
+		</ul>
+		<div class="container">
+			<div class="row">
+				<div class="col s12 m8">
+					<div class="col s12 m4">
+						<img src="" id="musicpic" style="transition-duration:0.2s;display:none;width: 90%;padding: 4px;border: 32px solid #151515;border-radius: 50%;background: rgb(191, 20, 20);margin-top: 5%;margin-left:5%;box-shadow:0px 0px 8px #000;" onerror="this.style.display='none'" />
+					</div>
+					<div class="col s12 m8">
+						<h5>正在播放</h5>
+						<p id="musicname">Loading...</p>
+						<br>
+						<h5>歌词</h5>
+						<p id="musiclrc">Loading...</p>
+						<div class="progress">
+							<div class="determinate" id="played" style="width: 0%"></div>
+						</div>
+					</div>
+					<div class="col s12 m12">
+						<br>
+						<h5>播放列表</h5>
+						<p>以下为等待播放的歌曲</p>
+						<div style="overflow-x: auto;">
+							<table class="table responsive-table" id="musicList"></table>
+						</div>
+						<audio src="" id="musicControl" style="width: 0px;height: 0px;opacity: 0;" autoplay>
+					</div>
+				</div>
+				<div class="col s12 m4">
+					<h5>实时聊天</h5>
+					<p>当前一共在线 <online id="online-user">0</online> 人</p>
+					<div id="chatdata"><button onclick="connect()" class="btn btn-primary">连接服务器</button></div>
+					<div class="input-group">
+						<input type="text" id="msginput" class="form-control input white-text" placeholder="消息内容"></input>
+						<span class="input-group-btn">
+							<button onclick="sendmsg()" id="sendmsgbtn" class="btn btn-primary full-width">发送</button>
+						</span>
+					</div>
+					<p>提示：输入 “点歌 &lt;歌名&gt;” 即可点歌。<br>例如输入：点歌 See You Again<br>支持输入网易云音乐 ID 来点歌</p>
+					<p>遇到不好听的歌可以输入 “投票切歌”，当投票人数超过在线人数的一半时就会切歌。</p>
+					<p>点播过于难听的歌曲例如 LostRiver 等将会被管理员切歌或从播放列表删除。</p>
+				</div>
+			</div>
+		</div>
+	</body>
+	<script type="text/javascript" src="https://cdn.zerodream.net/js/jquery.min.js"></script>
+	<script type="text/javascript" src="https://cdn.zerodream.net/js/materialize.min.js"></script>
+	<script type="text/javascript">
+		// 配置
+		var ws_hostname = 'wss://example.com:810/';
+		
+		// 初始化变量
+		var websocket;
+		var lrcObj = {};
+		var ws_connected = false;
+		var last_lrc;
+		var next_lrc;
+		var rotate = 0;
+		
+		// 系统消息
+		function print(msg) {
+			$("#chatdata").append("<center><span class='sysmsg'>" + msg + "</span></center>");
+			chatdata.scrollTop = chatdata.scrollHeight;
+		}
+		
+		// 解析 Lrc 格式歌词
+		function parseLyric(text) {
+			var lyrics = text.split("\n");
+			var lrcObj = {};
+			for(var i=0;i<lyrics.length;i++){
+				var lyric = decodeURIComponent(lyrics[i]);
+				var timeReg = /\[\d*:\d*((\.|\:)\d*)*\]/g;
+				var timeRegExpArr = lyric.match(timeReg);
+				if(!timeRegExpArr)continue;
+				var clause = lyric.replace(timeReg,'');
+				for(var k = 0,h = timeRegExpArr.length;k < h;k++) {
+					var t = timeRegExpArr[k];
+					var min = Number(String(t.match(/\[\d*/i)).slice(1)),
+					sec = Number(String(t.match(/\:\d*/i)).slice(1));
+					var time = min * 60 + sec;
+					lrcObj[time] = clause;
+				}
+			}
+			return lrcObj;
+		}
+		
+		// 聊天内容
+		function chat(data) {
+			var randid = Math.floor(Math.random() * 10000000);
+			$("#chatdata").append("<div class='chat chat-" + randid + " hidechat'><div class='msgbox'><small class='name'>" + data.user + "</small><div class='msg' title='" + data.time + "'>" + data.data + "</div></div></div>");
+			$(".chat-" + randid).fadeIn();
+			chatdata.scrollTop = chatdata.scrollHeight;
+		}
+		
+		// 读取音乐
+		function music(data) {
+			musicControl.src = data.file;
+			musicControl.pause();
+			musicname.innerHTML = data.artists + " - " + data.name + ", 专辑 《" + data.album + "》";
+			musicpic.src = data.image;
+			rotate = 0;
+			$("#blurimgsrc").attr("xlink:href", data.image);
+			$(musicpic).fadeIn();
+			lrcObj = parseLyric(data.lrcs);
+			setTimeout(function() {
+				if(data.current != undefined) {
+					musicControl.currentTime = data.current + 1;
+				}
+				musicControl.play();
+			}, 1000);
+		}
+		
+		// 发送聊天消息
+		function sendmsg() {
+			var message = msginput.value;
+			if(message == "") {
+				alert("消息不能为空");
+				return;
+			}
+			if(!ws_connected) {
+				alert("请等待服务器连接");
+				return;
+			}
+			var wait_send = {
+				type: "msg",
+				data: message
+			};
+			websocket.send(JSON.stringify(wait_send));
+			msginput.value = "";
+			msginput.disabled = true;
+			sendmsgbtn.disabled = true;
+			setTimeout(function() {
+				msginput.disabled = false;
+				sendmsgbtn.disabled = false;
+			}, 3000);
+		}
+		
+		// 连接服务器
+		function connect() {
+			websocket = new WebSocket(ws_hostname);
+			websocket.onopen = function (event) {
+				$("#chatdata").html("");
+				ws_connected = true;
+			};
+			websocket.onclose = function (event) {
+				ws_connected = false;
+				setTimeout("connect()", 5000);
+			};
+			websocket.onmessage = function (event) {
+				handle(event.data);
+			};
+			websocket.onerror = function (event, e) {
+				ws_connected = false;
+			};
+		}
+		
+		// 处理消息
+		function handle(data) {
+			try {
+				var json = JSON.parse(data);
+				if(json.type != undefined) {
+					switch(json.type) {
+						case "msg":
+							print(json.data);
+							break;
+						case "chat":
+							chat(json);
+							break;
+						case "music":
+							music(json);
+							break;
+						case "list":
+							musicList.innerHTML = json.data;
+							break;
+						case "online":
+							$("#online-user").html(json.data);
+							break;
+						default:
+							print("Unknown message type: " + json.type);
+					}
+				}
+			} catch(e) {
+				print(e.getMessage());
+			}
+		}
+		
+		// 网页加载完毕
+		document.onreadystatechange = function() { 
+			if(document.readyState == "complete") {
+				$('.sidenav').sidenav();
+				$("#msginput").keydown(function(e) {
+					if(e.keyCode == 13){
+						sendmsg();
+					}
+				});
+				setInterval(function() {
+					var curTime = musicControl.currentTime.toFixed();
+					if(lrcObj[curTime] != undefined && lrcObj[curTime] != "") {
+						musiclrc.innerText = lrcObj[curTime];
+					}
+				}, 1000);
+				setInterval(function() {
+					played.style.width = ((musicControl.currentTime / musicControl.duration) * 100) + "%";
+				}, 100);
+				setInterval(function() {
+					if(ws_connected) {
+						websocket.send('{"type":"heartbeat"}');
+					}
+				}, 5000);
+				setInterval(function() {
+					rotate = rotate + 1;
+					musicpic.style.transform = "rotate(" + rotate + "deg)";
+				}, 100);
+			}
+		}
+	</script>
+</html>
