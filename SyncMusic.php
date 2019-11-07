@@ -123,8 +123,8 @@ class SyncMusic {
 				"data" => "你已经成功连接到服务器！"
 			]));
 			
-			$musicPlay = $server->table->get(0, "music_play");
-			$musicList = json_decode($server->table->get(0, "music_show"), true);
+			$musicPlay = $this->getMusicPlay();
+			$musicList = $this->getMusicShow();
 			
 			// 如果当前列表中有音乐可播放
 			if($musicList && !empty($musicList)) {
@@ -143,7 +143,8 @@ class SyncMusic {
 					"artists" => $musicInfo['artists'],
 					"image"   => $musicInfo['image'],
 					"current" => $musicPlay + 1,
-					"lrcs"    => $lrcs
+					"lrcs"    => $lrcs,
+					"user"    => $musicInfo['user']
 				]));
 				
 				// 播放列表更新
@@ -456,10 +457,54 @@ class SyncMusic {
 											]));
 										}
 									} else {
-										$server->push($frame->fd, json_encode([
-											"type" => "msg",
-											"data" => "你没有权限这么做"
-										]));
+										
+										// 如果正在播放的音乐是第一首
+										if($deleteMusic <= 0) {
+											$server->push($frame->fd, json_encode([
+												"type" => "msg",
+												"data" => "正在播放的音乐不能删除"
+											]));
+										} else {
+											
+											// 获取播放列表
+											$musicList  = $this->getMusicList();
+											$sourceList = $this->getMusicShow();
+											
+											if(isset($musicList[$deleteMusic - 1]) && $musicList[$deleteMusic - 1]['user'] == $clientIp) {
+											
+												// 从列表中删除这首歌
+												unset($musicList[$deleteMusic - 1]);
+												unset($sourceList[$deleteMusic]);
+												
+												// 重新整理列表
+												$musicList = array_values($musicList);
+												$sourceList = array_values($sourceList);
+												
+												// 播放列表更新
+												$playList = $this->getPlayList($sourceList);
+												$this->setMusicList($musicList);
+												$this->setMusicShow($sourceList);
+												
+												// 广播给所有客户端
+												foreach($server->connections as $id) {
+													$server->push($id, json_encode([
+														"type" => "list",
+														"data" => $playList
+													]));
+												}
+												
+												// 发送通知
+												$server->push($frame->fd, json_encode([
+													"type" => "msg",
+													"data" => "音乐删除成功"
+												]));
+											} else {
+												$server->push($frame->fd, json_encode([
+													"type" => "msg",
+													"data" => "你只能删除自己点的歌"
+												]));
+											}
+										}
 									}
 									
 								} elseif(mb_substr($json['data'], 0, 5) == "房管登录 " && mb_strlen($json['data']) > 5) {
@@ -488,15 +533,22 @@ class SyncMusic {
 									
 									// 正则判断用户名是否合法
 									if(preg_match("/^[\x{4e00}-\x{9fa5}A-Za-z0-9_]+[^_]{3,20}$/u", $userNick)) {
-										$this->setUserNickname($clientIp, $userNick);
-										$server->push($frame->fd, json_encode([
-											"type" => "msg",
-											"data" => "昵称设置成功"
-										]));
+										if(mb_Strlen($userNick) <= 20) {
+											$this->setUserNickname($clientIp, $userNick);
+											$server->push($frame->fd, json_encode([
+												"type" => "msg",
+												"data" => "昵称设置成功"
+											]));
+										} else {
+											$server->push($frame->fd, json_encode([
+												"type" => "msg",
+												"data" => "昵称最多 20 个字符"
+											]));
+										}
 									} else {
 										$server->push($frame->fd, json_encode([
 											"type" => "msg",
-											"data" => "昵称错误，只允许中英文数字下划线"
+											"data" => "只允许中英文数字下划线，最少 4 个字"
 										]));
 									}
 									
@@ -513,19 +565,30 @@ class SyncMusic {
 												"data" => "当前有任务正在执行，请稍后再试"
 											]));
 										} else {
-											
-											// 提交任务给服务器
-											$server->task(["id" => $frame->fd, "action" => "Search", "data" => $musicName]);
-											
-											// 广播给所有客户端
-											foreach($clients as $id) {
-												$showUserName = $this->getClientIp($id) == $adminIp ? $clientIp : $username;
-												$server->push($id, json_encode([
-													"type" => "chat",
-													"user" => $showUserName,
-													"time" => date("Y-m-d H:i:s"),
-													"data" => htmlspecialchars($json['data'])
+											if(mb_strlen($json['data']) > MAX_CHATLENGTH) {
+												$server->push($frame->fd, json_encode([
+													"type" => "msg",
+													"data" => "消息过长，最多 " . MAX_CHATLENGTH . " 字符"
 												]));
+											} else {
+												
+												// 提交任务给服务器
+												$server->task(["id" => $frame->fd, "action" => "Search", "data" => $musicName]);
+												
+												// 广播给所有客户端
+												$userNickName = $this->getUserNickname($clientIp);
+												foreach($clients as $id) {
+													$showUserName = $this->getClientIp($id) == $adminIp ? $clientIp : $username;
+													if($userNickName) {
+														$showUserName = "{$userNickName} ({$showUserName})";
+													}
+													$server->push($id, json_encode([
+														"type" => "chat",
+														"user" => htmlspecialchars($showUserName),
+														"time" => date("Y-m-d H:i:s"),
+														"data" => htmlspecialchars($json['data'])
+													]));
+												}
 											}
 										}
 									} else {
@@ -534,24 +597,31 @@ class SyncMusic {
 											"data" => "歌曲名不能为空！"
 										]));
 									}
-									
 								} else {
+									
 									// 默认消息内容，即普通聊天，广播给所有客户端
-									if($this->isAdmin($clientIp)) {
-										$username = "管理员";
-									}
-									$userNickName = $this->getUserNickname($clientIp);
-									foreach($clients as $id) {
-										$showUserName = $this->isAdmin($this->getClientIp($id)) ? $clientIp : $username;
-										if($userNickName) {
-											$showUserName = "{$userNickName} ({$showUserName})";
-										}
-										$server->push($id, json_encode([
-											"type" => "chat",
-											"user" => htmlspecialchars($showUserName),
-											"time" => date("Y-m-d H:i:s"),
-											"data" => htmlspecialchars($json['data'])
+									if(mb_strlen($json['data']) > MAX_CHATLENGTH) {
+										$server->push($frame->fd, json_encode([
+											"type" => "msg",
+											"data" => "消息过长，最多 " . MAX_CHATLENGTH . " 字符"
 										]));
+									} else {
+										if($this->isAdmin($clientIp)) {
+											$username = "管理员";
+										}
+										$userNickName = $this->getUserNickname($clientIp);
+										foreach($clients as $id) {
+											$showUserName = $this->isAdmin($this->getClientIp($id)) ? $clientIp : $username;
+											if($userNickName) {
+												$showUserName = "{$userNickName} ({$showUserName})";
+											}
+											$server->push($id, json_encode([
+												"type" => "chat",
+												"user" => htmlspecialchars($showUserName),
+												"time" => date("Y-m-d H:i:s"),
+												"data" => htmlspecialchars($json['data'])
+											]));
+										}
 									}
 								}
 							}
@@ -628,6 +698,7 @@ class SyncMusic {
 							$this->setMusicTime(time() + round($musicInfo['time']));
 							$this->setMusicLong(time());
 							$this->setMusicPlay(0);
+							$this->setNeedSwitch("");
 							
 							// 获得播放列表
 							$playList = $this->getPlayList($sourceList);
@@ -645,7 +716,8 @@ class SyncMusic {
 										"album"   => $musicInfo['album'],
 										"artists" => $musicInfo['artists'],
 										"image"   => $musicInfo['image'],
-										"lrcs"    => $musicLrc
+										"lrcs"    => $musicLrc,
+										"user"    => $musicInfo['user']
 									]));
 									$server->push($id, json_encode([
 										"type" => "list",
@@ -763,6 +835,7 @@ class SyncMusic {
 								$this->server->finish(["id" => $data['id'], "action" => "msg", "data" => "歌曲下载失败，错误代码：ERROR_TIME0"]);
 							} else {
 								// 保存列表
+								$clientIp = $data['id'] ? $this->getClientIp($data['id']) : "127.0.0.1";
 								$musicList[] = [
 									"id"      => $musicId,
 									"name"    => $m['name'],
@@ -770,7 +843,8 @@ class SyncMusic {
 									"time"    => $musicTime,
 									"album"   => $m['album'],
 									"artists" => $artists,
-									"image"   => $musicImage
+									"image"   => $musicImage,
+									"user"    => $clientIp
 								];
 								$sourceList[] = [
 									"id"      => $musicId,
@@ -779,7 +853,8 @@ class SyncMusic {
 									"time"    => $musicTime,
 									"album"   => $m['album'],
 									"artists" => $artists,
-									"image"   => $musicImage
+									"image"   => $musicImage,
+									"user"    => $clientIp
 								];
 								$this->setMusicList($musicList);
 								$this->setMusicShow($sourceList);
@@ -926,6 +1001,7 @@ class SyncMusic {
 				break;
 			}
 		}
+		return $found;
 	}
 	
 	/**
@@ -1079,7 +1155,17 @@ EOF;
 	 */
 	private function getMusicList()
 	{
-		$musicList = json_decode($this->server->table->get(0, "music_list"), true);
+		if(USE_REDIS) {
+			$redis = new Redis();
+			$redis->connect(REDIS_HOST, REDIS_PORT);
+			if(!empty(REDIS_PASS)) {
+				$redis->auth(REDIS_PASS);
+			}
+			$data = $redis->get("syncmusic-list");
+			$musicList = json_decode($data, true);
+		} else {
+			$musicList = json_decode($this->server->table->get(0, "music_list"), true);
+		}
 		if(!$musicList || empty($musicList)) {
 			$musicList = [];
 		}
@@ -1093,7 +1179,17 @@ EOF;
 	 */
 	private function getMusicShow()
 	{
-		$sourceList = json_decode($this->server->table->get(0, "music_show"), true);
+		if(USE_REDIS) {
+			$redis = new Redis();
+			$redis->connect(REDIS_HOST, REDIS_PORT);
+			if(!empty(REDIS_PASS)) {
+				$redis->auth(REDIS_PASS);
+			}
+			$data = $redis->get("syncmusic-show");
+			$sourceList = json_decode($data, true);
+		} else {
+			$sourceList = json_decode($this->server->table->get(0, "music_show"), true);
+		}
 		if(!$sourceList || empty($sourceList)) {
 			$sourceList = [];
 		}
@@ -1296,7 +1392,16 @@ EOF;
 	 */
 	private function setMusicList($data)
 	{
-		$this->server->table->set(0, ["music_list" => json_encode($data)]);
+		if(USE_REDIS) {
+			$redis = new Redis();
+			$redis->connect(REDIS_HOST, REDIS_PORT);
+			if(!empty(REDIS_PASS)) {
+				$redis->auth(REDIS_PASS);
+			}
+			$redis->set("syncmusic-list", json_encode($data));
+		} else {
+			$this->server->table->set(0, ["music_list" => json_encode($data)]);
+		}
 	}
 	
 	/**
@@ -1306,7 +1411,16 @@ EOF;
 	 */
 	private function setMusicShow($data)
 	{
-		$this->server->table->set(0, ["music_show" => json_encode($data)]);
+		if(USE_REDIS) {
+			$redis = new Redis();
+			$redis->connect(REDIS_HOST, REDIS_PORT);
+			if(!empty(REDIS_PASS)) {
+				$redis->auth(REDIS_PASS);
+			}
+			$redis->set("syncmusic-show", json_encode($data));
+		} else {
+			$this->server->table->set(0, ["music_show" => json_encode($data)]);
+		}
 	}
 	
 	/**
