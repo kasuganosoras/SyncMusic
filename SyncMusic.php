@@ -247,8 +247,8 @@ class SyncMusic {
 											}
 										}
 										
-										// 判断投票的用户数是否超过在线用户数的一半
-										if($needSwitch / $totalUsers >= 0.5) {
+										// 判断投票的用户数是否超过在线用户数的 30%
+										if($needSwitch / $totalUsers >= 0.3) {
 											
 											// 执行切歌操作
 											$this->setMusicTime(time() + 1);
@@ -856,6 +856,9 @@ class SyncMusic {
 							if($musicTime == 0) {
 								$this->unlockSearch();
 								$this->server->finish(["id" => $data['id'], "action" => "msg", "data" => "歌曲下载失败，错误代码：ERROR_TIME0"]);
+							} elseif($musicTime > MAX_MUSICLENGTH) {
+								$this->unlockSearch();
+								$this->server->finish(["id" => $data['id'], "action" => "msg", "data" => "歌曲太长影响他人体验，不能超过 " . MAX_MUSICLENGTH . " 秒"]);
 							} else {
 								// 保存列表
 								$clientIp = $data['id'] ? $this->getClientIp($data['id']) : "127.0.0.1";
