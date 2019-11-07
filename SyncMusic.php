@@ -65,6 +65,7 @@ class SyncMusic {
 		$this->server = new Swoole\WebSocket\Server($this->bindHost, $this->bindPort);
 		$this->server->set([
 			'task_worker_num' => $this->workersNum,
+			'worker_num'      => 16,
 		]);
 
 		// Table 表，用于储存服务器的信息
@@ -161,7 +162,7 @@ class SyncMusic {
 		 */
 		$this->server->on('message', function (Swoole\WebSocket\Server $server, $frame) {
 			
-			$clients = $server->getClientList();
+			$clients = $server->connections;
 			$clientIp = $this->getClientIp($frame->fd);
 			$adminIp = $this->getAdminIp();
 			
@@ -237,13 +238,11 @@ class SyncMusic {
 										if($needSwitch == 1) {
 											
 											// 广播给所有客户端
-											foreach($server->getClientList() as $id) {
-												if($server->isEstablished($id)) {
-													$server->push($id, json_encode([
-														"type" => "msg",
-														"data" => "有人希望切歌，支持请输入 “投票切歌”"
-													]));
-												}
+											foreach($server->connections as $id) {
+												$server->push($id, json_encode([
+													"type" => "msg",
+													"data" => "有人希望切歌，支持请输入 “投票切歌”"
+												]));
 											}
 										}
 										
@@ -383,13 +382,11 @@ class SyncMusic {
 												$this->setMusicShow($sourceList);
 												
 												// 广播给所有客户端
-												foreach($server->getClientList() as $id) {
-													if($server->isEstablished($id)) {
-														$server->push($id, json_encode([
-															"type" => "list",
-															"data" => $playList
-														]));
-													}
+												foreach($server->connections as $id) {
+													$server->push($id, json_encode([
+														"type" => "list",
+														"data" => $playList
+													]));
 												}
 												
 												// 发送通知
@@ -445,13 +442,11 @@ class SyncMusic {
 											$this->setMusicShow($sourceList);
 											
 											// 广播给所有客户端
-											foreach($server->getClientList() as $id) {
-												if($server->isEstablished($id)) {
-													$server->push($id, json_encode([
-														"type" => "list",
-														"data" => $playList
-													]));
-												}
+											foreach($server->connections as $id) {
+												$server->push($id, json_encode([
+													"type" => "list",
+													"data" => $playList
+												]));
 											}
 											
 											// 发送通知
@@ -486,6 +481,25 @@ class SyncMusic {
 										]));
 									}
 									
+								} elseif(mb_substr($json['data'], 0, 5) == "设置昵称 " && mb_strlen($json['data']) > 5) {
+									
+									// 如果是设置昵称
+									$userNick = trim(mb_substr($json['data'], 5, 99999));
+									
+									// 正则判断用户名是否合法
+									if(preg_match("/^[\x{4e00}-\x{9fa5}A-Za-z0-9_]+[^_]{3,20}$/u", $userNick)) {
+										$this->setUserNickname($clientIp, $userNick);
+										$server->push($frame->fd, json_encode([
+											"type" => "msg",
+											"data" => "昵称设置成功"
+										]));
+									} else {
+										$server->push($frame->fd, json_encode([
+											"type" => "msg",
+											"data" => "昵称错误，只允许中英文数字下划线"
+										]));
+									}
+									
 								} elseif(mb_substr($json['data'], 0, 3) == "点歌 " && mb_strlen($json['data']) > 3) {
 									
 									// 如果是点歌命令
@@ -505,15 +519,13 @@ class SyncMusic {
 											
 											// 广播给所有客户端
 											foreach($clients as $id) {
-												if($server->isEstablished($id)) {
-													$showUserName = $this->getClientIp($id) == $adminIp ? $clientIp : $username;
-													$server->push($id, json_encode([
-														"type" => "chat",
-														"user" => $showUserName,
-														"time" => date("Y-m-d H:i:s"),
-														"data" => htmlspecialchars($json['data'])
-													]));
-												}
+												$showUserName = $this->getClientIp($id) == $adminIp ? $clientIp : $username;
+												$server->push($id, json_encode([
+													"type" => "chat",
+													"user" => $showUserName,
+													"time" => date("Y-m-d H:i:s"),
+													"data" => htmlspecialchars($json['data'])
+												]));
 											}
 										}
 									} else {
@@ -525,16 +537,21 @@ class SyncMusic {
 									
 								} else {
 									// 默认消息内容，即普通聊天，广播给所有客户端
+									if($this->isAdmin($clientIp)) {
+										$username = "管理员";
+									}
+									$userNickName = $this->getUserNickname($clientIp);
 									foreach($clients as $id) {
-										if($server->isEstablished($id)) {
-											$showUserName = $this->isAdmin($this->getClientIp($id)) ? $clientIp : $username;
-											$server->push($id, json_encode([
-												"type" => "chat",
-												"user" => $showUserName,
-												"time" => date("Y-m-d H:i:s"),
-												"data" => htmlspecialchars($json['data'])
-											]));
+										$showUserName = $this->isAdmin($this->getClientIp($id)) ? $clientIp : $username;
+										if($userNickName) {
+											$showUserName = "{$userNickName} ({$showUserName})";
 										}
+										$server->push($id, json_encode([
+											"type" => "chat",
+											"user" => htmlspecialchars($showUserName),
+											"time" => date("Y-m-d H:i:s"),
+											"data" => htmlspecialchars($json['data'])
+										]));
 									}
 								}
 							}
@@ -543,7 +560,7 @@ class SyncMusic {
 							// 处理客户端发过来心跳包的操作，返回在线人数给客户端
 							$server->push($frame->fd, json_encode([
 								"type" => "online",
-								"data" => count($server->getClientList())
+								"data" => count($server->connections)
 							]));
 							break;
 						default:
@@ -579,15 +596,10 @@ class SyncMusic {
 					$musicList = $this->getMusicList();
 					$musicShow = $this->getMusicShow();
 					
-					if(!$musicList || !$musicShow) {
-						
-						$musicList = $musicList ?? $this->getSavedMusicList();
-						$musicShow = $musicShow ?? $this->getSavedMusicShow();
-						
-						if(!$musicList || !$musicShow) {
-							$musicList = $musicList ?? [];
-							$musicShow = $musicShow ?? [];
-						}
+					// 如果列表为空
+					if(empty($musicList) || empty($musicShow)) {
+						$musicList = empty($musicList) ? $this->getSavedMusicList() : $musicList;
+						$musicShow = empty($musicShow) ? $this->getSavedMusicShow() : $musicShow;
 					}
 					
 					// 如果音乐列表不为空
@@ -622,9 +634,9 @@ class SyncMusic {
 							$musicLrc = $this->getMusicLrcs($musicInfo['id']);
 							
 							// 广播给所有客户端
-							if($server->getClientList()) {
+							if($server->connections) {
 								$currentURL = $this->getMusicUrl($musicInfo['id']);
-								foreach($server->getClientList() as $id) {
+								foreach($server->connections as $id) {
 									$server->push($id, json_encode([
 										"type"    => "music",
 										"id"      => $musicInfo['id'],
@@ -655,7 +667,7 @@ class SyncMusic {
 							if($rlist && !$server->randomed) {
 								
 								// 判断是否还有人在线，如果没人就不播放了，有人才播放
-								if($server->getClientList() && count($server->getClientList()) > 0) {
+								if($server->connections && count($server->connections) > 0) {
 									
 									// 开始播放随机音乐
 									$this->searchMusic($server, ["id" => false, "action" => "Search", "data" => $rlist]);
@@ -774,8 +786,8 @@ class SyncMusic {
 								// 播放列表更新
 								$playList = $this->getPlayList($sourceList);
 								// 广播给所有客户端
-								if($data['id'] && $this->server->getClientList()) {
-									foreach($this->server->getClientList() as $id) {
+								if($data['id'] && $this->server->connections) {
+									foreach($this->server->connections as $id) {
 										$this->server->push($id, json_encode([
 											"type" => "list",
 											"data" => $playList
@@ -1220,6 +1232,51 @@ EOF;
 	private function getTotalUsers()
 	{
 		return $this->server->getClientList() ? count($this->server->getClientList()) : 0;
+	}
+	
+	/**
+	 *
+	 *  GetUserNickname 获取用户的昵称
+	 *
+	 */
+	private function getUserNickname($ip)
+	{
+		$data = $this->getUserNickData();
+		return $data[$ip] ?? false;
+	}
+	
+	/**
+	 *
+	 *  GetUserNickData 获取所有用户的昵称数据
+	 *
+	 */
+	private function getUserNickData()
+	{
+		$data = @file_get_contents(ROOT . "/username.json");
+		$json = json_decode($data, true);
+		return $json ?? [];
+	}
+	
+	/**
+	 *
+	 *  SetUserNickname 设置用户的昵称
+	 *
+	 */
+	private function setUserNickname($ip, $name)
+	{
+		$data = $this->getUserNickData();
+		$data[$ip] = $name;
+		$this->setUserNickData($data);
+	}
+	
+	/**
+	 *
+	 *  SetUserNickData 将昵称数据写入到硬盘
+	 *
+	 */
+	private function setUserNickData($data)
+	{
+		@file_put_contents(ROOT . "/username.json", json_encode($data));
 	}
 	
 	/**
