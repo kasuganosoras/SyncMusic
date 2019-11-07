@@ -17,6 +17,10 @@
 - 无需登录，任何人都可以点歌
 - 无需数据库，由 Swoole 内存表储存数据
 
+有个地方就是获取音乐时间长度是用了 python，原本我是想直接用 PHP 来获取的，但是有点麻烦，还要导入一个单独的库，想了想还是用最简单的办法来解决，于是就用 python 整了个简单的脚本。
+
+如果你有更好的读取音乐时间的实现方法，欢迎提 pr 或通过 issues 告诉我。
+
 ## 安装教程
 
 请访问 Wiki 页面：[Installation](https://github.com/kasuganosoras/SyncMusic/wiki/Installation)
