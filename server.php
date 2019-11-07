@@ -67,6 +67,9 @@ define("MIN_CHATWAIT", 3);
 // 聊天内容的最大长度
 define("MAX_CHATLENGTH", 200);
 
+// 音乐的最大长度，单位秒，超过不能点
+define("MAX_MUSICLENGTH", 300);
+
 /**
  *
  *  开始运行服务器，请勿修改
