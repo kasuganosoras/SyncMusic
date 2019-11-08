@@ -549,6 +549,25 @@ class SyncMusic {
 										]));
 									}
 									
+								} elseif(mb_substr($json['data'], 0, 5) == "加黑名单 " && mb_strlen($json['data']) > 5) {
+									
+									// 如果是房管登录操作
+									$blackList = trim(mb_substr($json['data'], 5, 99999));
+									
+									// 判断密码是否正确
+									if($this->isAdmin($clientIp)) {
+										$this->addBlackList($blackList);
+										$server->push($frame->fd, json_encode([
+											"type" => "msg",
+											"data" => "已增加新的黑名单"
+										]));
+									} else {
+										$server->push($frame->fd, json_encode([
+											"type" => "msg",
+											"data" => "你没有权限这么做"
+										]));
+									}
+									
 								} elseif(mb_substr($json['data'], 0, 5) == "设置昵称 " && mb_strlen($json['data']) > 5) {
 									
 									// 如果是设置昵称
@@ -556,11 +575,20 @@ class SyncMusic {
 									
 									// 正则判断用户名是否合法
 									if(preg_match("/^[\x{4e00}-\x{9fa5}A-Za-z0-9_]+[^_]{3,20}$/u", $userNick)) {
-										if(mb_Strlen($userNick) <= 20) {
+										if($this->isBlackList($userNick)) {
+											$server->push($frame->fd, json_encode([
+												"type" => "msg",
+												"data" => "不允许的昵称"
+											]));
+										} elseif(mb_Strlen($userNick) <= 20) {
 											$this->setUserNickname($clientIp, $userNick);
 											$server->push($frame->fd, json_encode([
 												"type" => "msg",
 												"data" => "昵称设置成功"
+											]));
+											$server->push($frame->fd, json_encode([
+												"type" => "setname",
+												"data" => $userNick
 											]));
 										} else {
 											$server->push($frame->fd, json_encode([
@@ -582,7 +610,12 @@ class SyncMusic {
 									if(!empty($musicName)) {
 										
 										// 判断是否已经有人在点歌中
-										if($this->isLockedSearch()) {
+										if(count($this->getUserMusic($clientIp)) > MAX_USERMUSIC) {
+											$server->push($frame->fd, json_encode([
+												"type" => "msg",
+												"data" => "你已经点了很多歌了，请先听完再点"
+											]));
+										} elseif($this->isLockedSearch()) {
 											$server->push($frame->fd, json_encode([
 												"type" => "msg",
 												"data" => "当前有任务正在执行，请稍后再试"
@@ -844,7 +877,10 @@ class SyncMusic {
 					$artists = $this->getArtists($m['artist']);
 					$musicUrl = $this->getMusicUrl($m['id']);
 					// 如果能够正确获取到音乐 URL
-					if($musicUrl !== "") {
+					if($this->isBlackList($m['id']) || $this->isBlackList($m['name']) || $this->isBlackList($artists)) {
+						$this->unlockSearch();
+						$this->server->finish(["id" => $data['id'], "action" => "msg", "data" => "这首歌被设置不允许点播"]);
+					} elseif($musicUrl !== "") {
 						$musicId = Intval($m['id']);
 						// 开始下载音乐
 						$musicData = $this->fetchMusic($m, $musicUrl);
@@ -972,6 +1008,18 @@ class SyncMusic {
 	
 	/**
 	 *
+	 *  AddBlackList 增加新的黑名单关键字
+	 *
+	 */
+	private function addBlackList($data)
+	{
+		$blackList = $this->getBlackList();
+		$blackList[] = trim($data);
+		$this->setBlackList($blackList);
+	}
+	
+	/**
+	 *
 	 *  IsAdmin 判断是否是管理员
 	 *
 	 */
@@ -990,6 +1038,22 @@ class SyncMusic {
 	{
 		$bannedIp = $this->getBannedIp();
 		return ($bannedIp && stristr($bannedIp, "{$ip};"));
+	}
+	
+	/**
+	 *
+	 *  IsBlackList 判断是否在黑名单音乐中
+	 *
+	 */
+	private function isBlackList($key)
+	{
+		$blackList = $this->getBlackList();
+		for($i = 0;$i < count($blackList);$i++) {
+			if(stristr($key, $blackList[$i])) {
+				return true;
+			}
+		}
+		return false;
 	}
 	
 	/**
@@ -1028,6 +1092,25 @@ class SyncMusic {
 			}
 		}
 		return $found;
+	}
+	
+	/**
+	 *
+	 *  GetBlackList 获取音乐的黑名单列表
+	 *
+	 */
+	private function getBlackList()
+	{
+		$data = @file_get_contents(ROOT . "/blacklist.txt");
+		$exp = explode("\n", $data);
+		$result = [];
+		for($i = 0;$i < count($exp);$i++) {
+			$tmpData = trim($exp[$i]);
+			if(!empty($tmpData)) {
+				$result[] = $tmpData;
+			}
+		}
+		return $result;
 	}
 	
 	/**
@@ -1159,19 +1242,41 @@ class SyncMusic {
 	<th>歌名</th>
 	<th>歌手</th>
 	<th>专辑</th>
+	<th>点歌人</th>
 </tr>
 EOF;
 		foreach($sourceList as $mid => $mi) {
+			$userNick = $this->getUserNickname($mi['user']) ?? "匿名用户";
+			$user = "{$userNick} (" . $this->getMarkName($mi['user']) . ")";
+			$musicName = (mb_strlen($mi['name']) > 32) ? mb_substr($mi['name'], 0, 30) . "..." : $mi['name'];
 			$playList .= <<<EOF
 <tr>
 	<td>{$mid}</td>
-	<td>{$mi['name']}</td>
+	<td>{$musicName}</td>
 	<td>{$mi['artists']}</td>
 	<td>{$mi['album']}</td>
+	<td>{$user}</td>
 </tr>
 EOF;
 		}
 		return $playList;
+	}
+	
+	/**
+	 *
+	 *  GetUserMusic 获取用户点播的音乐数量
+	 *
+	 */
+	private function getUserMusic($ip)
+	{
+		$musicList = $this->getMusicList();
+		$userMusic = [];
+		foreach($musicList as $music) {
+			if($music['user'] == $ip) {
+				$userMusic[] = $music;
+			}
+		}
+		return $userMusic;
 	}
 	
 	/**
@@ -1399,6 +1504,20 @@ EOF;
 	private function setUserNickData($data)
 	{
 		@file_put_contents(ROOT . "/username.json", json_encode($data));
+	}
+	
+	/**
+	 *
+	 *  SetBlackList 将黑名单数据写入到硬盘
+	 *
+	 */
+	private function setBlackList($data)
+	{
+		$result = "";
+		for($i = 0;$i < count($data);$i++) {
+			$result .= $data[$i] . "\n";
+		}
+		@file_put_contents(ROOT . "/blacklist.txt", $result);
 	}
 	
 	/**
