@@ -179,13 +179,16 @@
 		
 		// 读取音乐
 		function music(data) {
-			document.title = data.artists + " - " + data.name + " - SyncMusic - 在线点歌";
+			// 获取音乐标题 复用
+			let music_title = data.artists + " - " + data.name;
+			document.title = music_title + " - SyncMusic - 在线点歌";
 			musicControl.src = data.file;
 			musicControl.pause();
-			musicname.innerHTML = data.artists + " - " + data.name + ", 专辑 《" + data.album + "》";
+			musicname.innerHTML = music_title + ", 专辑 《" + data.album + "》";
 			musicpic.src = data.image;
 			rotate = 0;
 			$("#blurimgsrc").attr("xlink:href", data.image);
+			print("正在播放：" + music_title);
 			$(musicpic).fadeIn();
 			lrcObj = parseLyric(data.lrcs);
 			setTimeout(function() {
