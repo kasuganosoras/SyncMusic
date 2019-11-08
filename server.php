@@ -70,6 +70,9 @@ define("MAX_CHATLENGTH", 200);
 // 音乐的最大长度，单位秒，超过不能点
 define("MAX_MUSICLENGTH", 300);
 
+// 每个用户最多可以点多少首歌
+define("MAX_USERMUSIC", 5);
+
 /**
  *
  *  开始运行服务器，请勿修改
