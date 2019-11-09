@@ -86,7 +86,13 @@
 						<div class="progress">
 							<div class="determinate" id="played" style="width: 0%"></div>
 						</div>
-						<p style="text-align:right;cursor:pointer;"><span onclick="if(volrange.style.display=='none'){$(volrange).fadeIn();}else{$(volrange).fadeOut();}">音量控制</span>&nbsp;&nbsp;&nbsp;<input type="range" value="1" min="0" max="1" step="0.01" id="volrange" style="display:none;transition-duration: 0.2s;border: 0px;width: 30%;position: relative;top: -4px;" onmousemove="musicControl.volume=this.value"></p>
+						<p style="text-align:right;cursor:pointer;">
+							<span onclick="if(volrange.style.display=='none'){$(volrange).fadeIn();}else{$(volrange).fadeOut();}">音量控制</span>&nbsp;&nbsp;&nbsp;
+							<input type="range" value="1" min="0" max="1" step="0.01" id="volrange" 
+								style="display:none;transition-duration: 0.2s;border: 0px;width: 30%;position: relative;top: -4px;" 
+								onmousemove="musicControl.volume=this.value"
+								onchange="localStorage.setItem('volume', this.value)" />
+						</p>
 					</div>
 					<div class="col s12 m12">
 						<br>
@@ -213,9 +219,10 @@
 		
 		// 读取音乐
 		function music(data) {
-			// 获取音乐标题 复用
-			// 原本 pull request 这里加了个通知后面考虑还是去掉了，因为会多次显示刷屏
 			let music_title = data.artists + " - " + data.name;
+			let setVolume = localStorage.getItem("volume");
+			musicControl.volume = (setVolume == null || setVolume == undefined) ? 1 : setVolume;
+			// 原本 pull request 这里加了个通知后面考虑还是去掉了，因为会多次显示刷屏
 			document.title = music_title + " - SyncMusic - 在线点歌";
 			musicControl.src = data.file;
 			musicControl.pause();
