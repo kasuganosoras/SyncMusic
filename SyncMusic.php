@@ -69,7 +69,7 @@ class SyncMusic {
 		]);
 
 		// Table 表，用于储存服务器的信息
-		$table = new Swoole\Table(65535);
+		$table = new Swoole\Table(1024);
 		$table->column('music_time', swoole_table::TYPE_FLOAT, 8);
 		$table->column('music_play', swoole_table::TYPE_FLOAT, 8);
 		$table->column('music_long', swoole_table::TYPE_FLOAT, 8);
@@ -81,7 +81,7 @@ class SyncMusic {
 		$table->create();
 
 		// Chats 表，用于储存用户的信息
-		$chats = new Swoole\Table(65536);
+		$chats = new Swoole\Table(1024);
 		$chats->column('ip', swoole_table::TYPE_STRING, 256);
 		$chats->column('last', swoole_table::TYPE_FLOAT, 8);
 		$chats->create();
