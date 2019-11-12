@@ -3,7 +3,7 @@
 define("API_URL", "https://cdn.zerodream.net/netease");
 if(isset($_GET['s']) && !empty($_GET['s'])) {
 	$keyWord = urlencode($_GET['s']);
-	$rawdata = @file_get_contents("/api.php?source=netease&types=search&name={$keyWord}&count=10&pages=1");
+	$rawdata = @file_get_contents(API_URL . "/api.php?source=netease&types=search&name={$keyWord}&count=10&pages=1");
 	$data = json_decode($rawdata, true);
 	if(!$data || empty($data)) {
 		if(isset($_GET['debug'])) {
