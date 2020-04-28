@@ -35,8 +35,8 @@ function getArtists($data) {
 		<meta http-equiv="X-UA-Compatible" content="IE=11">
 		<title>SyncMusic - 在线点歌</title>
 		<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-		<link rel="stylesheet" href="https://cdn.zerodream.net/css/materialize.min.css">
-		<link rel="stylesheet" href="https://cdn.zerodream.net/font-awesome/css/font-awesome.min.css">
+		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/materialize-css@1.0.0/dist/css/materialize.min.css">
+		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css">
 		<style>.table tr{font-size:14px;}.table .result:hover{cursor:pointer;color:#009688 !important;}.table tr th,.table tr td{white-space: nowrap;}</style>
 	</head>
 	<body style="display: none;">
@@ -57,8 +57,8 @@ function getArtists($data) {
 			?>
 		</table>
 	</body>
-	<script type="text/javascript" src="https://cdn.zerodream.net/js/jquery.min.js"></script>
-	<script type="text/javascript" src="https://cdn.zerodream.net/js/materialize.min.js"></script>
+	<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/jquery@3.5.0/dist/jquery.min.js"></script>
+	<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/materialize-css@1.0.0/dist/js/materialize.min.js"></script>
 	<script type="text/javascript">
 	function select(data) {
 		try {
