@@ -70,20 +70,20 @@ class SyncMusic {
 
 		// Table 表，用于储存服务器的信息
 		$table = new Swoole\Table(1024);
-		$table->column('music_time', swoole_table::TYPE_FLOAT, 8);
-		$table->column('music_play', swoole_table::TYPE_FLOAT, 8);
-		$table->column('music_long', swoole_table::TYPE_FLOAT, 8);
-		$table->column('downloaded', swoole_table::TYPE_FLOAT, 8);
-		$table->column('needswitch', swoole_table::TYPE_STRING, 32768);
-		$table->column('music_list', swoole_table::TYPE_STRING, 32768);
-		$table->column('music_show', swoole_table::TYPE_STRING, 32768);
-		$table->column('banned_ips', swoole_table::TYPE_STRING, 32768);
+		$table->column('music_time', Swoole\Table::TYPE_FLOAT, 8);
+		$table->column('music_play', Swoole\Table::TYPE_FLOAT, 8);
+		$table->column('music_long', Swoole\Table::TYPE_FLOAT, 8);
+		$table->column('downloaded', Swoole\Table::TYPE_FLOAT, 8);
+		$table->column('needswitch', Swoole\Table::TYPE_STRING, 32768);
+		$table->column('music_list', Swoole\Table::TYPE_STRING, 32768);
+		$table->column('music_show', Swoole\Table::TYPE_STRING, 32768);
+		$table->column('banned_ips', Swoole\Table::TYPE_STRING, 32768);
 		$table->create();
 
 		// Chats 表，用于储存用户的信息
 		$chats = new Swoole\Table(1024);
-		$chats->column('ip', swoole_table::TYPE_STRING, 256);
-		$chats->column('last', swoole_table::TYPE_FLOAT, 8);
+		$chats->column('ip', Swoole\Table::TYPE_STRING, 256);
+		$chats->column('last', Swoole\Table::TYPE_FLOAT, 8);
 		$chats->create();
 
 		// 初始化信息
